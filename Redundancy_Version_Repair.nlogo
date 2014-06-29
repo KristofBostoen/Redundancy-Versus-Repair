@@ -1,23 +1,36 @@
 ;  For more information see the the Info tab. Do not forget to change the version number and date under the Info tab.
 
-globals [
-ref_distance      ; the scale example: 1 patch = 25 meters
-Days_running        ; number of days the model is runnig
-Time_of_day         ; the current time in hours
-new_ticket          ; switch variable to set ticket_counter at the same number as ticket_number witch are variables owned by different turtles
-current_number      ; switch variable to check if turn_number has the same value as ticket_number witch are variables owned by different turtles
-current_collector   ; switch variable to identify a single turtle to update for
-CollectorHLocation  ; switch variable to let home_location be read by other turtles
-CollectorCLocation  ; switch variable to let waterpoint locations be read by other turtles
-carry_water         ; switch variable to let carry_amount be read by households
-To_Carry            ; switch variable to let pump know how much water was taken
-;PumpBreakdownVolume ; Amount of water a pump can produce before it breaks down
-;NumberOfPumpsBroken ; Number of pumps that are not working at the moment
-max_queueP          ; switch variable to let pump know what max_queue is of collector  
-collection_timeP    ; switch variable to let pump know wath the collectiontime is of a collector
-enough_water?       ; check if they have enough water, true or false
-;Random_setup?
-;RandomWaterVolume
+extensions [profiler]    ; to determine the amount of time certain procedures are called
+; Example from internet below for reference
+; setup                  ;; set up the model
+; profiler:start         ;; start profiling
+; repeat 20 [ go ]       ;; run something you want to measure
+; profiler:stop          ;; stop profiling
+; print profiler:report  ;; view the results
+; profiler:reset         ;; clear the data
+
+globals 
+[
+    ref_distance          ; the scale example: 1 patch = 25 meters X 25 meters
+    Days_running          ; number of days the model is runnig
+    Time_of_day           ; the time in hours of the current day
+    new_ticket            ; switch variable to set ticket_counter at the same number as ticket_number witch are variables owned by different turtles
+                          ; => tickets at are at the pump level the max people in a que and the water collector level
+                          ; =>
+                          ; => the location of the water collector in the que
+    current_number        ; switch variable to check if turn_number has the same value as ticket_number witch are variables owned by different turtles
+    current_collector     ; switch variable to identify a single turtle to update for
+    CollectorHLocation    ; switch variable to let home_location be read by other turtles
+    CollectorCLocation    ; switch variable to let waterpoint locations be read by other turtles
+    carry_water           ; switch variable to let carry_amount be read by households
+    To_Carry              ; switch variable to let pump know how much water was taken
+   ;PumpBreakdownVolume   ; Amount of water a pump can produce before it breaks down
+   ;NumberOfPumpsBroken   ; Number of pumps that are not working at the moment
+    max_queueP            ; switch variable to let pump know what max_queue is of collector  
+    collection_timeP      ; switch variable to let pump know wath the collectiontime is of a collector
+    enough_water?         ; check if they have enough water, true or false
+   ;Random_setup?
+   ;RandomWaterVolume
 ]
 
 breed [households household]            ; turtle household
@@ -26,53 +39,48 @@ breed [watercollectors watercolletor]   ; turtle watercollector
 
 Patches-own
 [
-patch_has_hh?      ; wether there is a household at a patch
-patch_has_wp?      ; wether there is a waterpoint at a patch 
-HH_density_radius  ; wat the household density radius is
+    patch_has_hh?             ; wether there is a household at a patch
+    patch_has_wp?             ; wether there is a waterpoint at a patch 
+    HH_density_radius         ; wat the household density radius is
 ]
 
 households-own
 [
-household-locationH     ; their location
-water_amount            ; the amount of water that is currently at the household
-service_level           ; the service level calculated by amount of water and time needed to collect water
-
-
-
-
-number_residents        ; each household has a number of residents
-needed_water            ; each household needs a certain amount of water depending on the number of residents
-water_service           ; percentage water/needed water
-end_collecting_time
-start_collecting_time
-Total_Collecting_Time_Day
-Total_Collections_Day
-one_collecting_time
-
+    household-locationH       ; their location
+    water_amount              ; the amount of water that is currently at the household
+    service_level             ; the service level calculated by amount of water and time needed to collect water
+    number_residents          ; each household has a number of residents
+    needed_water              ; each household needs a certain amount of water depending on the number of residents
+    water_service             ; percentage water/needed water
+    end_collecting_time
+    start_collecting_time
+    Total_Collecting_Time_Day
+    Total_Collections_Day
+    one_collecting_time
 ]
 
 waterpoints-own
 [
-working-rate            ; at what rate a waterpoint is working : 1 = working 0 = not working
-Moment_Broken           ; the exact tick when a water point breaks down
-waterpoint_locationP    ; their location
-ticket_counter          ; ticketcounter shows how many watercollectors there are at a waterpoint
-turn_number             ; turnnumber shows witch number can fetch water, when it is their turn
-queue_length            ; The lenth (in time) of the queue
-Water_Delivered         ; amount of water collected from this water point
+    working-rate              ; at what rate a waterpoint is working : 1 = working 0 = not working
+    Moment_Broken             ; the exact tick when a water point breaks down
+    waterpoint_locationP      ; their location
+    ticket_counter            ; ticketcounter shows how many watercollectors there are at a waterpoint
+    turn_number               ; turnnumber shows witch number can fetch water, when it is their turn
+    queue_length              ; The lenth (in time) of the queue
+    Water_Delivered           ; amount of water collected from this water point
 ]
 
 watercollectors-own
 [
-home_location           ; the household that is their home                      
-walking-speed           ; the speed the watercollectors walk with
-watercollection_status  ; the status they have during the day ; outgoing, collecting-water, redirecting, returnhome etc.
-waterpoint_locationC    ; This shows the location of the waterpoint they go to to fetch water
-;collection_time         ; the time it takes to pump water
-end_of_collectiontime   ; this is the time a watercollector finishes pumping water
-ticket_number           ; the number they got at the waterpoint to wait in queue and to fetch water
-carry_amount            ; the amount of water they carry
-max_queueC              ; The maximum time they want to spend queuing
+    home_location             ; the household that is their home                      
+    walking-speed             ; the speed the watercollectors walk with
+    watercollection_status    ; the status they have during the day ; outgoing, collecting-water, redirecting, returnhome etc.
+    waterpoint_locationC      ; This shows the location of the waterpoint they go to to fetch water
+   ;collection_time           ; the time it takes to pump water
+    end_of_collectiontime     ; this is the time a watercollector finishes pumping water
+    ticket_number             ; the number they got at the waterpoint to wait in queue and to fetch water
+    carry_amount              ; the amount of water they carry
+    max_queueC                ; The maximum time they want to spend queuing
 ]
 
 to setup
@@ -126,8 +134,8 @@ to setup_households
                  [set color brown                                    ;colour the house brown                                                
               set size 6                                             ;set the size of the house
               set water_amount 0                                     ; start with 0 water
-              set number_residents 4 + random 4                      ; they have between 4 and 8 residents per household
-              set needed_water (number_residents * 15)               ; people need 15 liter per person
+              set number_residents 2 + random-poisson 2              ; they have between 4 and 8 residents per household
+              set needed_water (number_residents * 15)               ; people need 15 liter per person  => played around reducing needs but model still struggles
               set Total_collecting_Time_Day 0
               set Total_Collections_Day 0
               set Service_level 4  
@@ -138,31 +146,31 @@ end
 
 
 to setup_watercollectors
- set-default-shape watercollectors "person"    ; set watercollectors to look like persons
-  ask patches [ if patch_has_hh? = true        ; if a patch has a household there will be one watercollector
+ set-default-shape watercollectors "person"             ; set watercollectors to look like persons
+  ask patches [ if patch_has_hh? = true                 ; if a patch has a household there will be one watercollector
     [sprout-watercollectors 1
-[set color blue                                ; color of watercollectors
-  set size 6                                   ; size of watercollectors
-  hide-turtle
-  set home_location patch-here                 ; giving their household the sign home_location
-  set watercollection_status "standby"           ; start of the day with status outgoing 
-  set walking-speed (average_speed + random 2.7) ; set the walking speed
-  set ticket_number 1                            ; the first ticketnumber that will be given by a waterpoint is 1
-  set carry_amount 0                             ; the amount of water they carry is at the beginning of the day 0
-  set max_queueC 10 / 60 
+[set color blue                                         ; color of watercollectors
+  set size 6                                            ; size of watercollectors
+  hide-turtle                                           ; Hide tirtle when at home
+  set home_location patch-here                          ; set the home location for each watercollector
+  set watercollection_status "standby"                  ; start of the day with status outgoing => ????
+  set walking-speed (average_speed + random-float 2.7)  ; set the walking speed => set random float if not value after . is ignored as only integers are used
+  set ticket_number 1                                   ; the first ticketnumber that will be given by a waterpoint is 1 => the use of tickets numbers are for me still a
+  set carry_amount 0                                    ; the amount of water they carry is at the beginning of the day 0 => they leacve the house with an empty jerrycan.
+  set max_queueC 1;10 / 60                                ; => this not clear to me. I this the maximum que time aceptible? And if should this not vary between users e.g. in function of the need an alternatives?
   set Waterpoint_locationC [Waterpoint_locationP] of min-one-of waterpoints [distance myself]
-                                               ; sets the waterpoint they have to walk to as the waterpoint closest to their home_location
-]                                              ; end set color yellow 
-   ]                                           ; end sprout watercollectors 1  
-               ]                               ; end if patch_has_hh? = true 
+                                                        ; sets the waterpoint they have to walk to as the waterpoint closest to their home_location
+]                                                       ; end set color yellow 
+   ]                                                    ; end sprout watercollectors 1  
+               ]                                        ; end if patch_has_hh? = true 
           
                                                
                                                
  end
   
 to setup_waterpoints 
- ask patches [set patch_has_wp? false]       ; first ask all the patches to have no waterpoints
- ask n-of Nbr_of_waterpoints patches         ; ask a number of waterpoints (can be changed in interface)
+ ask patches [set patch_has_wp? false]       ; fset  patches to have no waterpoints => tell all patches they have have no water pointing on it.
+ ask n-of Nbr_of_waterpoints patches         ; give a number of patches (determined by the interface) .... a waterpoint
     [set patch_has_wp? true]                 ; to have a waterpoint
                                     
  set-default-shape waterpoints "handpump"    ; set shape of waterpoint is cactus
@@ -199,7 +207,7 @@ if floor (ticks / 1080 ) > Days_running                      ; 1080 ticks per da
 ask households
    [let Average_Collection_time 1
     if Total_Collections_Day > 0
-       [set Average_Collection_Time (Total_Collecting_Time_Day * 60 / Total_Collections_Day)]
+       [set Average_Collection_Time (Total_Collecting_Time_Day / Total_Collections_Day)] ; => removed the 60 in (Total_Collecting_Time_Day * 60 / Total_Collections_Day) on Chris Brown recommendation 
     ifelse (water_service >= 50)
        [if Average_Collection_time <= 10
            [set Service_level 1
@@ -392,7 +400,7 @@ to standby
               set enough_water? (water_amount > needed_water)
              ]
        set carry_amount 0                                    ; the water of the watercollector will be set to 0 again
-       if Time_of_Day < 18.5 and ((random-float 1 > 0.96)    ; so people won't directly leave the house again
+       if Time_of_Day < 18.5 and ((random-float 1 > 0.80)    ; so people won't directly leave the house again
        and (enough_water? = false))
            [set watercollection_status "outgoing"
             ask households-here
@@ -496,7 +504,7 @@ INPUTBOX
 644
 361
 nbr_of_waterpoints
-16
+50
 1
 0
 Number
@@ -562,7 +570,7 @@ PumpRepairTime
 PumpRepairTime
 0
 100
-11
+4
 1
 1
 Days
@@ -592,8 +600,8 @@ PLOT
 640
 234
 Users per waterpoint per day
-NIL
-NIL
+Time 
+Tickets ?
 0.0
 10.0
 0.0
@@ -602,7 +610,8 @@ true
 false
 "" ""
 PENS
-"default" 1.0 1 -16777216 true "" "ask waterpoints [plot (ticket_counter / (count waterpoints with [working-rate = 1])) ]"
+"max" 1.0 1 -2674135 true "" "ask waterpoints with [working-rate = 1] [plot [ticket_counter] of max-one-of waterpoints [ticket_counter]]"
+"min" 1.0 0 -10899396 true "" "ask waterpoints with [working-rate = 1] [plot [ticket_counter] of min-one-of waterpoints [ticket_counter]]"
 
 PLOT
 4
@@ -631,7 +640,7 @@ PumpBreakDownVolume
 PumpBreakDownVolume
 0
 1000000
-995000
+1000000
 1000
 1
 NIL
@@ -730,7 +739,7 @@ MONITOR
 237
 369
 282
-NIL
+Time of the day
 round (Time_of_Day)
 17
 1
